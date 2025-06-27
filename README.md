@@ -94,11 +94,6 @@ case = sum(vals[i] * (T**i) for i in range(4))
    pip install -r requirements.txt
    ```
 
-   *requirements.txt* должен содержать:
-
-   ```text
-   pygame
-   ```
 4. **Запуск**
 
    ```bash
