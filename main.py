@@ -34,7 +34,7 @@ def draw_case(overlay, case, weights):
     for tri in MULTI_TABLE[case]['aband']:
         pts = []
         for _, idx in tri:
-            a,b = EDGES[idx]
+            a, b = EDGES[idx]
             pts.append(interp(POINTS[a], POINTS[b], weights[a], weights[b]))
         pygame.draw.polygon(overlay, pink_fill, pts)
         pygame.draw.polygon(overlay, AMBIGUOUS_COLOR, pts, width=2)
@@ -45,7 +45,7 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Multi-type MS с розовой спорной")
 font = pygame.font.SysFont(None, 20)
 clock = pygame.time.Clock()
-values = [0, 0, 0, 0]
+values = [0, 1, 2, 3]
 weights = [0.2,0.2,0.2,0.2]
 MULTI_TABLE = build_multitype_table()
 pprint.pprint(MULTI_TABLE, width=80)

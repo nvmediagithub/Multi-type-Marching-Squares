@@ -97,7 +97,7 @@ case = sum(vals[i] * (T**i) for i in range(4))
 4. **Запуск**
 
    ```bash
-   python main.py
+   python main_2.py
    ```
 
 ## Структура проекта
