@@ -42,18 +42,59 @@ def find_position(A, B, C, w):
     return (x, y)
 
 
+def segment_intersection(A, B, C, D, epsilon=1e-10):
+    """
+    Нахождение точки пересечения двух отрезков AB и CD.
+
+    Параметры:
+    A, B -- точки отрезка AB в формате (x, y)
+    C, D -- точки отрезка CD в формате (x, y)
+    epsilon -- точность сравнения для чисел с плавающей точкой
+
+    Возвращает:
+    Кортеж (x, y) с координатами точки пересечения,
+    или None если отрезки не пересекаются
+    """
+    x1, y1 = A
+    x2, y2 = B
+    x3, y3 = C
+    x4, y4 = D
+
+    # Вычисляем знаменатель (определитель)
+    denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1)
+
+    # Проверяем параллельность (близость к нулю с учетом погрешности)
+    if abs(denom) < epsilon:
+        return None
+
+    # Вычисляем параметры для параметрических уравнений
+    ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denom
+    ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denom
+
+    # Проверяем, лежит ли точка пересечения на обоих отрезках
+    if 0 <= ua <= 1 and 0 <= ub <= 1:
+        x = x1 + ua * (x2 - x1)
+        y = y1 + ua * (y2 - y1)
+        return (x, y)
+
+    return None
+
 
 # === Функция рисования по triangle table ===
-def draw_case(overlay, case, weights):
+def draw_case(overlay, values, weights):
+    case = sum(values[i] * (T ** i) for i in range(4))
     ep = [()] * 4
     for i in range(4):
         a, b = EDGES[i]
         ep[i] = interp(POINTS[a], POINTS[b], weights[a], weights[b])
 
-    center = (
-        (ep[0][0] + ep[1][0] + ep[2][0] + ep[3][0]) / 4.0,
-        (ep[0][1] + ep[1][1] + ep[2][1] + ep[3][1]) / 4.0
-    )
+    # Усреднить
+    # center = (
+    #     (ep[0][0] + ep[1][0] + ep[2][0] + ep[3][0]) / 4.0,
+    #     (ep[0][1] + ep[1][1] + ep[2][1] + ep[3][1]) / 4.0
+    # )
+    # Пересечение отрезков
+    center = segment_intersection(ep[0], ep[2], ep[1], ep[3])
 
     w_01 = weights[0] + weights[2]
     w_23 = weights[1] + weights[3]
@@ -81,7 +122,7 @@ def draw_case(overlay, case, weights):
             pygame.draw.polygon(overlay, fill, pts)
             pygame.draw.polygon(overlay, base, pts, width=2)
 
-
+    # Верхний треугольник
     pts = []
     for kind, idx in MULTI_TABLE[case]['aband'][0]:
         if kind == 'p':
@@ -90,17 +131,16 @@ def draw_case(overlay, case, weights):
             pts.append(ep[idx])
         elif kind == 'ip':
             pts.append(ip[idx])
-
-
-    base = SURFACE_COLORS[1]
+    base = SURFACE_COLORS[values[1]]
     fill = (*base, OVERLAY_ALPHA)
     if w > 0.5:
-        base = SURFACE_COLORS[0]
+        base = SURFACE_COLORS[values[0]]
         fill = (*base, OVERLAY_ALPHA)
+    if len(pts) == 3:
+        pygame.draw.polygon(overlay, fill, pts)
+        pygame.draw.polygon(overlay, base, pts, width=2)
 
-    pygame.draw.polygon(overlay, fill, pts)
-    pygame.draw.polygon(overlay, base, pts, width=2)
-
+    # Нижний треугольник
     pts = []
     for kind, idx in MULTI_TABLE[case]['aband'][1]:
         if kind == 'p':
@@ -109,19 +149,17 @@ def draw_case(overlay, case, weights):
             pts.append(ep[idx])
         elif kind == 'ip':
             pts.append(ip[idx])
-
-
-    base = SURFACE_COLORS[3]
+    base = SURFACE_COLORS[values[3]]
     fill = (*base, OVERLAY_ALPHA)
     if w > 0.5:
-        base = SURFACE_COLORS[2]
+        base = SURFACE_COLORS[values[2]]
         fill = (*base, OVERLAY_ALPHA)
+    if len(pts) == 3:
+        pygame.draw.polygon(overlay, fill, pts)
+        pygame.draw.polygon(overlay, base, pts, width=2)
 
-    pygame.draw.polygon(overlay, fill, pts)
-    pygame.draw.polygon(overlay, base, pts, width=2)
 
     pygame.draw.circle(screen, AMBIGUOUS_COLOR, center, POINT_RADIUS / 2)
-
     pygame.draw.circle(screen, SURFACE_COLORS[0], ep[0], POINT_RADIUS / 2)
     pygame.draw.circle(screen, SURFACE_COLORS[1], ep[1], POINT_RADIUS / 2)
     pygame.draw.circle(screen, SURFACE_COLORS[2], ep[2], POINT_RADIUS / 2)
@@ -137,7 +175,7 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Multi-type MS с розовой спорной")
 font = pygame.font.SysFont(None, 20)
 clock = pygame.time.Clock()
-values = [0, 1, 2, 3]
+values = [0, 0, 0, 1]
 weights = [0.2, 0.4, 0.8, 0.4]
 MULTI_TABLE = build_multitype_table_10p()
 pprint.pprint(MULTI_TABLE, width=80)
@@ -145,7 +183,7 @@ pprint.pprint(MULTI_TABLE, width=80)
 # === Основной цикл ===
 running = True
 case = sum(values[i] * (T ** i) for i in range(4))
-print(f"Текущий case: \n\t {case} (base-10) \n\t {to_base(case, 4)} (base-4)")
+print(values, f"Текущий case: \n\t {case} (base-10) \n\t {to_base(case, 4)} (base-4)")
 
 while running:
     for ev in pygame.event.get():
@@ -162,12 +200,11 @@ while running:
                 if (mx - px) ** 2 + (my - py) ** 2 <= POINT_RADIUS ** 2:
                     values[i] = (values[i] + 1) % T
                     case = sum(values[i] * (T ** i) for i in range(4))
-                    print(f"Новый case: \n\t {case} (base-10) \n\t {to_base(case, 4)} (base-4)")
+                    print(values, f"Новый case: \n\t {case} (base-10) \n\t {to_base(case, 4)} (base-4)")
 
-    case = sum(values[i] * (T ** i) for i in range(4))
     screen.fill(BG_COLOR)
     overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-    draw_case(overlay, case, weights)
+    draw_case(overlay, values, weights)
     screen.blit(overlay, (0, 0))
     pygame.draw.rect(screen, CELL_BORDER_COLOR, (MARGIN_X, MARGIN_Y, CELL_SIZE, CELL_SIZE), 2)
     for i, (px, py) in POINTS.items():
